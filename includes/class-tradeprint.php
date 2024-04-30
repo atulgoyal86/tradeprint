@@ -112,6 +112,16 @@ class Tradeprint {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-tradeprint-i18n.php';
 
 		/**
+		 * The Helper
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/helper.php';
+
+		/**
+		 * The Helper
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-tradeprint-api.php';
+
+		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-tradeprint-admin.php';

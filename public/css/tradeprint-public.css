@@ -2,3 +2,28 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+ .cotp-tradeprint.cotp-product-attributes {
+    width: 50%;
+    display: flex;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+
+.cotp-product-attribute-single label, .cotp-product-attribute-single select {
+    width: 100%;
+}
+
+.cotp-product-attribute-single {
+    width: 100%;
+}
+
+.cotp-product-attribute-single select {
+    font-size: 16px;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.cotp-product-attribute-single label {
+    font-weight: 500;
+    font-size: 16px;
+}

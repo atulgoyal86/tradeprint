@@ -52,6 +52,7 @@ class Tradeprint_Public {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
+		add_action('woocommerce_before_add_to_cart_button',array($this, 'cotp_tradeprint_product_attributes'));
 	}
 
 	/**
@@ -98,6 +99,51 @@ class Tradeprint_Public {
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/tradeprint-public.js', array( 'jquery' ), $this->version, false );
 
+	}
+
+	/**
+	 * tradeprint product attribute render on single product page.
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_product_attributes(){
+		global $product;
+		
+		if(is_tradeprint_product($product->get_id())){
+			$tradeprint_product_name = get_post_meta($product->get_id(), 'cotp_product_name', true);
+			if(isset($tradeprint_product_name) && $tradeprint_product_name != ''){
+				$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			
+				$tradeprint_product_attributes = $tradeprint_api->get_product_attributes( $tradeprint_product_name );
+
+				if($tradeprint_product_attributes && !empty($tradeprint_product_attributes)){
+					?>
+						<div class="cotp-tradeprint cotp-product-attributes">
+							<?php if( !empty($tradeprint_product_attributes['attributes'])){ ?>
+								<?php foreach($tradeprint_product_attributes['attributes'] as $attribute_name => $attributes){ ?>
+								
+									<div class="cotp-product-attribute-single">
+										<label><?php echo $attribute_name; ?></label>
+										<select class="tradeprint_attr_select" name="tradeprint_attrs[<?php echo $attribute_name; ?>]">
+											<option value="">Select</option>
+
+											<?php if( !empty($attributes)){ ?>
+												<?php foreach($attributes as $attribute){ ?>
+													<option value="<?php echo $attribute; ?>"><?php echo $attribute; ?></option>
+												<?php } ?>
+											<?php } ?>
+										</select>
+									</div>
+
+								<?php } ?>
+							<?php } ?>
+							
+						</div>
+					<?php
+				}
+			}
+			
+		}
 	}
 
 }
