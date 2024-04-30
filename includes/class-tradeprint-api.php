@@ -223,13 +223,14 @@ class Tradeprint_Api {
 	 * @since    1.0.0
 	 */
 
-	 public function get_product_prices($product_id, $selected_attributes){
+	public function get_product_prices($product_id, $selected_attributes){
 		$curl = curl_init();
 
 		$api_body = array(
 			"productId" => $product_id,
 			"productionData" => $selected_attributes
 		);
+		
 
 		curl_setopt_array($curl, array(
 		CURLOPT_URL => $this->api_base_url.'products-v2/prices-v2',
@@ -250,7 +251,19 @@ class Tradeprint_Api {
 		$response = curl_exec($curl);
 
 		curl_close($curl);
-		echo $response;
+		$response = json_decode($response, true);
+		if(isset($response['success'])){
+			if($response['success']){
+				return $response['result'];
+			}
+			else{
+				return false;
+			}
+			
+		}
+		else{
+			return false;
+		}
 
-	 }
+	}
 }

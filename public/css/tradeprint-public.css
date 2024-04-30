@@ -2,6 +2,9 @@
  * All of the CSS for your public-facing functionality should be
  * included in this file.
  */
+ .cotp-tradeprint-main {
+    width: 100%;
+}
  .cotp-tradeprint.cotp-product-attributes {
     width: 50%;
     display: flex;
@@ -26,4 +29,35 @@
 .cotp-product-attribute-single label {
     font-weight: 500;
     font-size: 16px;
+}
+
+
+.cotp-tradeprint.cotp-quantity-options label {
+    font-weight: 500;
+    font-size: 16px;
+    width: 100%;
+}
+
+.cotp-tradeprint.cotp-quantity-options {
+    width: 50%;
+}
+
+.cotp-tradeprint.cotp-quantity-options select {
+    width: 100%;
+    font-size: 16px;
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.cotp-tradeprint.cotp-tradeprint-prices {
+    width: 50%;
+}
+
+.cotp-tradeprint.cotp-tradeprint-prices .tradeprice_service_level label {
+    width: 100%;
+}
+
+.cotp-tradeprint.cotp-tradeprint-prices .tradeprice_service_level {
+    display: flex;
+    flex-wrap: wrap;
 }
