@@ -180,6 +180,8 @@ class Tradeprint_Api {
 			return false;
 		}
 
+		$product_name = rawurlencode($product_name);
+
 		$curl = curl_init();
 
 		curl_setopt_array($curl, array(
@@ -223,13 +225,21 @@ class Tradeprint_Api {
 	 * @since    1.0.0
 	 */
 
-	public function get_product_prices($product_id, $selected_attributes){
+	public function get_product_prices($product_id, $selected_attributes, $quantity = '', $service_level = ''){
 		$curl = curl_init();
 
 		$api_body = array(
 			"productId" => $product_id,
 			"productionData" => $selected_attributes
 		);
+
+		if($quantity != ''){
+			$api_body['quantity'] = array((int)$quantity);
+		}
+
+		if($service_level != ''){
+			$api_body['serviceLevel'] = $service_level;
+		}
 		
 
 		curl_setopt_array($curl, array(

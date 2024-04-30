@@ -55,6 +55,11 @@ class Tradeprint_Public {
 		add_action('woocommerce_before_add_to_cart_button',array($this, 'cotp_tradeprint_product_attributes'));
 		add_action('wp_ajax_tradeprint_product_prices_ajax', array($this, 'cotp_tradeprint_product_prices_ajax'));
 		add_action('wp_ajax_nopriv_tradeprint_product_prices_ajax', array($this, 'cotp_tradeprint_product_prices_ajax'));
+
+		add_filter( 'woocommerce_add_cart_item_data', array($this, 'cotp_tradeprint_cart_item_data'), 10, 3 );
+		add_filter( 'woocommerce_get_item_data', array($this, 'cotp_tradeprint_get_cart_item_data'), 10, 2 );
+		add_action( 'woocommerce_checkout_create_order_line_item', array($this, 'cotp_tradeprint_order_item_data'), 10, 4 );
+		add_action( 'woocommerce_before_calculate_totals', array($this, 'cotp_tradeprint_calculate_item_price'), 99 );
 	}
 
 	/**
@@ -122,7 +127,10 @@ class Tradeprint_Public {
 					?>
 						<style>
 							.single-product span.woocommerce-Price-amount.amount {
-								display: none;
+								display: none !important;
+							}
+							form.cart .quantity {
+								display: none !important;
 							}
 						</style>
 						<div class="cotp-tradeprint-main">
@@ -160,6 +168,8 @@ class Tradeprint_Public {
 
 						<script>
 							jQuery(document).ready(function($){
+								$('form.cart .single_add_to_cart_button').prop('disabled', true);
+
 								$('.tradeprint_attr_select').on('change', function(){
 									cotp_get_product_prices_ajax();
 								});
@@ -168,11 +178,22 @@ class Tradeprint_Public {
 									var selected_quantity = $(this).val();
 									$('.cotp-tradeprint-prices .tradeprice_service_level').hide();
 									$('.cotp-tradeprint-prices .tradeprice_service_level_qty_'+selected_quantity).show();
+									$('form.cart .single_add_to_cart_button').prop('disabled', true);
+								});
+
+								$(document).on('change','input[name="tradeprint_service_level"]', function(){
+									if($('input[name="tradeprint_service_level"]:checked').length > 0){
+										$('form.cart .single_add_to_cart_button').prop('disabled', false);
+									}
+									else{
+										$('form.cart .single_add_to_cart_button').prop('disabled', true);
+									}
 								});
 
 								function cotp_get_product_prices_ajax(){
 									$('.cotp-quantity-options').html('');
 									$('.cotp-tradeprint-prices').html('');
+									$('form.cart .single_add_to_cart_button').prop('disabled', true);
 
 									var all_attribute_selected = true;
 									var selected_attributes = {};
@@ -216,6 +237,8 @@ class Tradeprint_Public {
 												else{
 													$('.cotp-quantity-options').html('');
 													$('.cotp-tradeprint-prices').html('');
+													$('form.cart .single_add_to_cart_button').prop('disabled', true);
+													
 												}
 
 												$('.cotp-tradeprint-main').css('opacity', '1');
@@ -225,6 +248,7 @@ class Tradeprint_Public {
 									else{
 										$('.cotp-quantity-options').html('');
 										$('.cotp-tradeprint-prices').html('');
+										$('form.cart .single_add_to_cart_button').prop('disabled', true);
 									}
 									
 								}
@@ -260,5 +284,143 @@ class Tradeprint_Public {
 		}
 
 		wp_send_json($result); die;
+	}
+
+	/**
+	 * tradeprint product cart item data
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_cart_item_data( $cart_item_data, $product_id, $variation_id ){
+		if(is_tradeprint_product($product_id)){
+			if ( isset( $_POST['tradeprint_attrs'] ) && !empty($_POST['tradeprint_attrs'])) {
+				$cart_item_data['tradeprint_attrs'] = $_POST['tradeprint_attrs'];
+				
+			}
+			if ( isset( $_POST['tradeprint_quantity'] ) ) {
+				$cart_item_data['tradeprint_quantity'] = sanitize_text_field( $_POST['tradeprint_quantity'] );
+			}
+			if ( isset( $_POST['tradeprint_service_level'] ) ) {
+				$cart_item_data['tradeprint_service_level'] = sanitize_text_field( $_POST['tradeprint_service_level'] );
+			}
+			if ( isset( $_POST['tradeprint_product_id'] ) ) {
+				$cart_item_data['tradeprint_product_id'] = sanitize_text_field( $_POST['tradeprint_product_id'] );
+			}
+		}
+		return $cart_item_data;
+	}
+
+	/**
+	 * tradeprint product display cart item data
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_get_cart_item_data( $item_data, $cart_item_data ){
+		if ( isset( $cart_item_data['tradeprint_attrs'] ) && !empty($cart_item_data['tradeprint_attrs']) ) {
+
+			foreach($cart_item_data['tradeprint_attrs'] as $attr_name => $attr_value){
+				$item_data[] = array(
+					'key'   => __( $attr_name ),
+					'value' => wc_clean( $attr_value ),
+				);
+			}
+			
+		}
+
+		if ( isset( $cart_item_data['tradeprint_quantity'] ) ) {
+			$item_data[] = array(
+				'key'   => __( 'Tradeprint Quantity' ),
+				'value' => wc_clean( $cart_item_data['tradeprint_quantity'] ),
+			);
+		}
+
+		if ( isset( $cart_item_data['tradeprint_service_level'] ) ) {
+			$item_data[] = array(
+				'key'   => __( 'Service Level' ),
+				'value' => wc_clean( $cart_item_data['tradeprint_service_level'] ),
+			);
+		}
+
+		return $item_data;
+	}
+
+	/**
+	 * tradeprint product order item data
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_order_item_data( $item, $cart_item_key, $values, $order ){
+
+		if ( isset( $values['tradeprint_attrs'] ) && !empty($values['tradeprint_attrs'])) {
+
+			foreach($values['tradeprint_attrs'] as $attr_name => $attr_value){
+				$item->add_meta_data(
+					__( $attr_name ),
+					$attr_value,
+					true
+				);
+			}
+			
+		}
+		
+		if ( isset( $values['tradeprint_quantity'] ) ) {
+			$item->add_meta_data(
+				__( 'Tradeprint Quantity' ),
+				$values['tradeprint_quantity'],
+				true
+			);
+		}
+		if ( isset( $values['tradeprint_service_level'] ) ) {
+			$item->add_meta_data(
+				__( 'Service Level' ),
+				$values['tradeprint_service_level'],
+				true
+			);
+		}
+		if ( isset( $values['tradeprint_product_id'] ) ) {
+			$item->add_meta_data(
+				__( 'Tradeprint Product Id' ),
+				$values['tradeprint_product_id'],
+				true
+			);
+		}
+	}
+
+	/**
+	 * tradeprint product price calculate
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_calculate_item_price( $cart_object ){
+		$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$product_id = $cart_item['product_id'];
+			if(is_tradeprint_product( $product_id )){
+				
+				if( isset( $cart_item["tradeprint_attrs"] ) 
+				&& isset( $cart_item["tradeprint_quantity"] ) 
+				&& isset( $cart_item["tradeprint_service_level"] ) 
+				&& isset( $cart_item["tradeprint_product_id"] ) ) {
+
+					
+					$tradeprint_product_prices = $tradeprint_api->get_product_prices( $cart_item["tradeprint_product_id"], $cart_item["tradeprint_attrs"], $cart_item["tradeprint_quantity"], $cart_item["tradeprint_service_level"] );
+					
+					if($tradeprint_product_prices){
+						$price_ = $tradeprint_product_prices[0]['prices'][0]['price']??0;
+
+						if($price_ > 0){
+							if( method_exists( $cart_item['data'], "set_price" ) ) {
+											
+								 $cart_item['data']->set_price( $price_ );
+							} else {
+								  
+								 $cart_item['data']->price = ( $price_ );                    
+							} 
+					 	}
+					}
+				}
+			}
+			
+		}
 	}
 }
