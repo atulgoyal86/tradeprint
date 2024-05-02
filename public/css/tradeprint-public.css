@@ -6,10 +6,11 @@
     width: 100%;
 }
  .cotp-tradeprint.cotp-product-attributes {
-    width: 50%;
+    width: 100%;
     display: flex;
     flex-wrap: wrap;
     margin: 8px 0;
+    justify-content: space-between;
 }
 
 .cotp-product-attribute-single label, .cotp-product-attribute-single select {
@@ -17,7 +18,7 @@
 }
 
 .cotp-product-attribute-single {
-    width: 100%;
+    width: 49%;
 }
 
 .cotp-product-attribute-single select {

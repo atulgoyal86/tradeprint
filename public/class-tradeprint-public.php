@@ -285,8 +285,7 @@ class Tradeprint_Public {
 
 		$wc_product_id = $_POST['wc_product_id'];
 
-		$cotp_product_commission = get_post_meta($wc_product_id, 'cotp_product_commission', true);
-		$cotp_product_commission = $cotp_product_commission??0;
+		$cotp_product_commission = $this->cotp_get_commssion_percentage( $wc_product_id );
 
 		if( !empty($selected_attributes) && $product_id != ''){
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
@@ -427,8 +426,7 @@ class Tradeprint_Public {
 			$product_id = $cart_item['product_id'];
 			if(is_tradeprint_product( $product_id )){
 
-				$cotp_product_commission = get_post_meta($product_id, 'cotp_product_commission', true);
-				$cotp_product_commission = $cotp_product_commission??0;
+				$cotp_product_commission = $this->cotp_get_commssion_percentage( $product_id );
 				
 				if( isset( $cart_item["tradeprint_attrs"] ) 
 				&& isset( $cart_item["tradeprint_quantity"] ) 
@@ -458,5 +456,21 @@ class Tradeprint_Public {
 			}
 			
 		}
+	}
+
+	/**
+	 * tradeprint get product commission
+	 * @since    1.0.0
+	 */
+	public function cotp_get_commssion_percentage( $product_id ){
+		$cotp_product_commission_global = get_option('cotp_commission_global')??0;
+
+		$cotp_product_commission = get_post_meta($product_id, 'cotp_product_commission', true);
+		$cotp_product_commission = $cotp_product_commission??0;
+		if(!isset($cotp_product_commission) || $cotp_product_commission == '' || $cotp_product_commission == 0){
+			$cotp_product_commission = $cotp_product_commission_global;
+		}
+
+		return $cotp_product_commission;
 	}
 }

@@ -186,6 +186,41 @@ class Tradeprint_Admin {
 			array(
 				'type' => 'sectionend',
 			),
+			array(
+				'name' => 'Commission Settings',
+				'type' => 'title'
+			),
+			array(
+				'name'     => 'Commission',
+				'id'       => 'cotp_commission_global',
+				'type'     => 'number',
+				'default' => 0,
+				'custom_attributes' => array(
+					'step' 	=> '.01',
+					'min'	=> '0'
+				)
+			),
+			array(
+				'type' => 'sectionend',
+			),
+
+			array(
+				'name' => 'Delivery Settings',
+				'type' => 'title'
+			),
+			array(
+				'name'     => 'Extend estimated delivery days',
+				'id'       => 'cotp_extend_delivery_days',
+				'type'     => 'number',
+				'default' => 0,
+				'custom_attributes' => array(
+					'step' 	=> '1',
+					'min'	=> '0'
+				)
+			),
+			array(
+				'type' => 'sectionend',
+			),
 		);
 		return $settings;
 
