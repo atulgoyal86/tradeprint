@@ -63,6 +63,11 @@ class Tradeprint_Admin {
 		add_filter( 'woocommerce_settings_tabs_array', array($this, 'cotp_tradeprint_setting_tab'), 21 );
 		add_action( 'woocommerce_settings_tradeprint', array($this, 'cotp_tradeprint_setting_tab_content') );
 		add_action( 'woocommerce_settings_save_tradeprint', array($this, 'cotp_tradeprint_setting_tab_save') );
+
+
+		add_action('wp_ajax_tradeprint_product_admin_ajax', array($this, 'cotp_tradeprint_product_admin_ajax'));
+		add_action('wp_ajax_nopriv_tradeprint_product_admin_ajax', array($this, 'cotp_tradeprint_product_admin_ajax'));
+
 	}
 
 	/**
@@ -221,13 +226,79 @@ class Tradeprint_Admin {
 	}
 
 	/**
+	 * traprint product admin ajax to get availabe attributes
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_product_admin_ajax(){
+		$result = array();
+		$result['success'] = false;
+
+		$product_name = $_POST['product_name']??'';
+
+		$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			
+		$tradeprint_product_attributes = $tradeprint_api->get_product_attributes( $product_name );
+
+		if($tradeprint_product_attributes && !empty($tradeprint_product_attributes)){
+			$result['success'] = true;
+			$result['msg'] = 'Attributes Fatched';
+			$result['available_attributes'] = $tradeprint_product_attributes['attributes'];
+		}
+		else{
+			$result['msg'] = 'No Attributes Fatched';
+		}
+
+		wp_send_json($result); die;
+	}
+
+	/**
 	 * traprint product setting tab content
 	 *
 	 * @since    1.0.0
 	 */
 	public function cotp_tradeprint_options_product_tab_content(){
-		echo '<div id="cotp_tradeprint_options_tab" class="panel woocommerce_options_panel">';
+		global $post;
+		$admin_cotp_attr = get_post_meta( $post->ID, 'admin_cotp_attr', true );
+		$admin_cotp_attr = $admin_cotp_attr??array();
+		$cotp_product_name = get_post_meta( $post->ID, 'cotp_product_name', true );
 
+		$admin_cotp_attr_html = '';
+		if($cotp_product_name != ''){
+			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			
+			$tradeprint_product_attributes = $tradeprint_api->get_product_attributes( $cotp_product_name );
+			
+			if($tradeprint_product_attributes && !empty($tradeprint_product_attributes)){
+				$available_attributes = $tradeprint_product_attributes['attributes'];
+
+				if( !empty($available_attributes)){
+					foreach($available_attributes as $attribute_name => $attributes){
+
+						$op = '';
+						if( !empty($attributes)){
+							foreach($attributes as $attribute){
+								if(isset($admin_cotp_attr[$attribute_name]) && in_array($attribute, $admin_cotp_attr[$attribute_name])){
+									$op .= '<option selected value="'.$attribute.'">'.$attribute.'</option>';
+								}
+								else{
+									$op .= '<option value="'.$attribute.'">'.$attribute.'</option>';
+								}
+							}
+						}
+
+						$admin_cotp_attr_html .= '<div class="cotp_admin_field">
+						<label>'.$attribute_name.'</label>
+						<select multiple class="tradeprint_admin_options" name="admin_cotp_attr['.$attribute_name.'][]">
+						<option value="">Select</option>'.$op.'</select></div>';
+					}
+				}
+					
+			}
+		}
+		
+		echo '<div id="cotp_tradeprint_options_tab" class="panel woocommerce_options_panel">';
+		
 		woocommerce_wp_text_input(
 			array(
 			  'id' => 'cotp_product_name',
@@ -236,6 +307,27 @@ class Tradeprint_Admin {
 			  'type' => 'text',
 			)
 		);
+
+		woocommerce_wp_text_input(
+			array(
+			  'id' => 'cotp_product_commission',
+			  'label' => __( 'Tradeprint Product Commission (%)' ),
+			  'placeholder' => '',
+			  'default' => 0,
+			  'type' => 'number', 
+				'custom_attributes' => array(
+					'step' 	=> '.01',
+					'min'	=> '0'
+				) 
+			)
+		);
+
+		echo '<div class="cotp-attribute-settings">';
+		echo '<button id="cotp-get-available-attr-btn" type="button" class="button primary">Get Available Attributes</button>';
+		echo '<h3>Exclude Attributes</h3>';
+		echo '<div class="cotp-available-attr-selection">'.$admin_cotp_attr_html.'</div>';
+
+		echo '</div>';
 
 		echo '</div>';
 		echo "<script>
@@ -258,6 +350,7 @@ class Tradeprint_Admin {
 					}
 				});
 				$( 'input#_cotp_tradeprint' ).trigger( 'change' );
+
 			});
 		</script>";
 	}
@@ -272,6 +365,17 @@ class Tradeprint_Admin {
 		if( !empty( $cotp_product_name ) ) {
 	        update_post_meta( $product_id, 'cotp_product_name', esc_attr( $cotp_product_name ) );
 	    }
+		
+		if( isset($_POST['cotp_product_commission']) ) {
+	        update_post_meta( $product_id, 'cotp_product_commission', esc_attr( $_POST['cotp_product_commission'] ) );
+	    }
+
+		if(isset($_POST['admin_cotp_attr']) && !empty($_POST['admin_cotp_attr'])){
+			update_post_meta( $product_id, 'admin_cotp_attr', $_POST['admin_cotp_attr'] );
+		}
+		else{
+			update_post_meta( $product_id, 'admin_cotp_attr', array() );
+		}
 	}
 
 }

@@ -118,12 +118,19 @@ class Tradeprint_Public {
 		
 		if(is_tradeprint_product($product->get_id())){
 			$tradeprint_product_name = get_post_meta($product->get_id(), 'cotp_product_name', true);
+
+			$cotp_product_commission = get_post_meta($product->get_id(), 'cotp_product_commission', true);
+			$cotp_product_commission = $cotp_product_commission??0;
+
 			if(isset($tradeprint_product_name) && $tradeprint_product_name != ''){
 				$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
 			
 				$tradeprint_product_attributes = $tradeprint_api->get_product_attributes( $tradeprint_product_name );
 
 				if($tradeprint_product_attributes && !empty($tradeprint_product_attributes)){
+
+					$admin_cotp_attr = get_post_meta( $product->get_id(), 'admin_cotp_attr', true );
+					$admin_cotp_attr = $admin_cotp_attr??array();
 					?>
 						<style>
 							.single-product span.woocommerce-Price-amount.amount {
@@ -146,7 +153,9 @@ class Tradeprint_Public {
 
 												<?php if( !empty($attributes)){ ?>
 													<?php foreach($attributes as $attribute){ ?>
+														<?php if(!isset($admin_cotp_attr[$attribute_name]) || !in_array($attribute, $admin_cotp_attr[$attribute_name])){ ?>
 														<option value="<?php echo $attribute; ?>"><?php echo $attribute; ?></option>
+														<?php } ?>
 													<?php } ?>
 												<?php } ?>
 											</select>
@@ -214,7 +223,7 @@ class Tradeprint_Public {
 										$('.cotp-tradeprint-main').css('opacity', '.5');
 										$.ajax({
 											url: '<?php echo admin_url('admin-ajax.php'); ?>',
-											data: {action:'tradeprint_product_prices_ajax',selected_attributes:selected_attributes,product_id:product_id},
+											data: {action:'tradeprint_product_prices_ajax',wc_product_id:<?php echo $product->get_id(); ?>,selected_attributes:selected_attributes,product_id:product_id},
 											type: 'post',
 											success: function(response){
 												if(response.success && response.prices_options && response.prices_options.length > 0){
@@ -238,7 +247,9 @@ class Tradeprint_Public {
 													$('.cotp-quantity-options').html('');
 													$('.cotp-tradeprint-prices').html('');
 													$('form.cart .single_add_to_cart_button').prop('disabled', true);
-													
+													if(response.prices_options == false){
+														$('.cotp-quantity-options').html('<p class="woocommerce-error message-wrapper danger-color">No product found for this combination.</p>');
+													}
 												}
 
 												$('.cotp-tradeprint-main').css('opacity', '1');
@@ -271,9 +282,28 @@ class Tradeprint_Public {
 		$result['success'] = false;
 		$selected_attributes = $_POST['selected_attributes']??array();
 		$product_id = $_POST['product_id']??'';
+
+		$wc_product_id = $_POST['wc_product_id'];
+
+		$cotp_product_commission = get_post_meta($wc_product_id, 'cotp_product_commission', true);
+		$cotp_product_commission = $cotp_product_commission??0;
+
 		if( !empty($selected_attributes) && $product_id != ''){
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
 			$tradeprint_product_prices = $tradeprint_api->get_product_prices( $product_id, $selected_attributes );
+
+			if($tradeprint_product_prices && !empty($tradeprint_product_prices) && $cotp_product_commission > 0){
+				foreach($tradeprint_product_prices as $key => $tradeprint_product_price){
+					if(!empty($tradeprint_product_price['prices'])){
+						foreach($tradeprint_product_price['prices'] as $key2 => $price_){
+							$tradeprint_product_price['prices'][$key2]['price'] = round(( $price_['price'] + ($price_['price'] * ( $cotp_product_commission/100 ))), 2);
+							
+						}
+					}
+
+					$tradeprint_product_prices[$key] = $tradeprint_product_price;
+				}
+			}
 
 			$result['success'] = true;
 			$result['msg'] = 'Prices Fatched';
@@ -396,6 +426,9 @@ class Tradeprint_Public {
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$product_id = $cart_item['product_id'];
 			if(is_tradeprint_product( $product_id )){
+
+				$cotp_product_commission = get_post_meta($product_id, 'cotp_product_commission', true);
+				$cotp_product_commission = $cotp_product_commission??0;
 				
 				if( isset( $cart_item["tradeprint_attrs"] ) 
 				&& isset( $cart_item["tradeprint_quantity"] ) 
@@ -408,6 +441,9 @@ class Tradeprint_Public {
 					if($tradeprint_product_prices){
 						$price_ = $tradeprint_product_prices[0]['prices'][0]['price']??0;
 
+						if($cotp_product_commission > 0){
+							$price_ = round(( $price_ + ( $price_ * ($cotp_product_commission/100))), 2);
+						}
 						if($price_ > 0){
 							if( method_exists( $cart_item['data'], "set_price" ) ) {
 											

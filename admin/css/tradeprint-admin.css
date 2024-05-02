@@ -2,3 +2,36 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
+ .cotp-attribute-settings {
+    padding: 15px;
+}
+
+.cotp-available-attr-selection {
+    padding: 10px;
+    height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    column-gap: 10px;
+}
+
+.cotp_admin_field {
+    width: 50%;
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.cotp_admin_field lable {
+    margin: 0 !important;
+}
+
+.cotp_admin_field label {
+    margin: 0 !important;
+    width: 100%;
+    font-weight: 600;
+}
+
+select.tradeprint_admin_options {
+    width: 100%;
+}
