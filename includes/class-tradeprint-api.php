@@ -276,4 +276,209 @@ class Tradeprint_Api {
 		}
 
 	}
+
+
+	/**
+	 * tradeprint api get product expected delivery date
+	 *
+	 * @since    1.0.0
+	 */
+
+	public function get_expected_delivery_date($product_id, $selected_attributes, $quantity = '', $service_level = '', $artworkService = '', $postcode = ''){
+		$curl = curl_init();
+
+		$api_body = array(
+			"productId" => $product_id,
+			"productionData" => $selected_attributes
+		);
+
+		if($quantity != ''){
+			$api_body['quantity'] = array((int)$quantity);
+		}
+
+		if($service_level != ''){
+			$api_body['serviceLevel'] = $service_level;
+		}
+
+		if($artworkService != ''){
+			$api_body['artworkService'] = $artworkService;
+		}
+
+		if($postcode != ''){
+			$api_body['deliveryAddress']['postcode'] = $postcode;
+		}
+		
+
+		curl_setopt_array($curl, array(
+		CURLOPT_URL => $this->api_base_url.'products-v2/prices-v2',
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_ENCODING => '',
+		CURLOPT_MAXREDIRS => 10,
+		CURLOPT_TIMEOUT => 0,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST => 'POST',
+		CURLOPT_POSTFIELDS => json_encode($api_body),
+		CURLOPT_HTTPHEADER => array(
+			'Authorization: Bearer '.$this->api_token,
+			'Content-Type: application/json'
+		),
+		));
+
+		$response = curl_exec($curl);
+
+		curl_close($curl);
+		$response = json_decode($response, true);
+		if(isset($response['success'])){
+			if($response['success']){
+				return $response['result'];
+			}
+			else{
+				return false;
+			}
+			
+		}
+		else{
+			return false;
+		}
+
+	}
+
+
+	public function create_order( $wc_order_id ){
+		$order = wc_get_order( $wc_order_id );
+		
+		$tradeprint_order = array();
+		$tradeprint_order['currency'] = 'GBP'; //get_woocommerce_currency();
+		$tradeprint_order['orderReference'] = (string)$order->get_id();
+		$tradeprint_order['billingAddress'] = array(
+			"firstName"=> $order->get_billing_first_name(),
+			"lastName"=> $order->get_billing_last_name(),
+			"add1"=> $order->get_billing_address_1(),
+			"add2"=> $order->get_billing_address_2(),
+			"postcode"=> $order->get_billing_postcode(),
+			"town"=> $order->get_billing_city(),
+			"country"=> $order->get_billing_country(),
+			//"companyName"=> $order->get_billing_company(),
+			"email"=> $order->get_billing_email(),
+			//"contactPhone"=> $order->get_billing_phone(),
+			//"mobile"=> $order->get_billing_phone()
+		);
+
+		$tradeprint_items = array();
+
+		foreach ( $order->get_items() as $item_id => $item ) {
+			
+			if(is_tradeprint_product($item->get_product_id())){
+				$production_data = $item->get_meta('tradeprint_production_data', true);
+
+				$file_url = $item->get_meta('tradeprint_upload_url', true)??'';
+				$tradeprint_items_data = array(
+					"productId" => $item->get_meta('Tradeprint Product Id', true),
+					"fileUrls" => array(),
+					"withoutArtwork" => true,
+					"quantity" => (int)$item->get_meta('Tradeprint Quantity', true),
+					"serviceLevel" => $item->get_meta('Service Level', true),
+					"productionData" => $production_data,
+					"partnerContactDetails" => array(
+						"firstName"=> $order->get_billing_first_name(),
+						"lastName"=> $order->get_billing_last_name(),
+						"email"=> $order->get_billing_email(),
+						//"contactPhone"=> $order->get_billing_phone(),
+						//"companyName"=> $order->get_billing_company()
+					),
+					"deliveryAddress" => array(
+						//"companyName"=> $order->get_shipping_company(),
+						"firstName"=> $order->get_shipping_first_name(),
+						"lastName"=> $order->get_shipping_last_name(),
+						"add1"=> $order->get_shipping_address_1(),
+						"add2"=> $order->get_shipping_address_2(),
+						"town"=> $order->get_shipping_city(),
+						"postcode"=> $order->get_shipping_postcode(),
+						"country"=> $order->get_shipping_country() //"GB"
+					),
+					"extraData" => array(
+						// "description"=> "Order description",
+						"comments"=> $order->get_customer_note()
+						// "partnerItemId"=> "doe_12345",
+						// "merchandisingProductName"=> "Comp Slip",
+						// "referenceLabel"=> "Sample Reference",
+						// "purchaseOrder"=> "12345679"
+					)
+				);
+
+				if( isset($file_url) && $file_url != ''){
+					$tradeprint_items_data['fileUrls'] = array($file_url);
+					$tradeprint_items_data['withoutArtwork'] = false;
+				}
+
+				// $tradeprint_items_data['fileUrls'] = array('https://wp.cloud1.me/agdev/wp-content/uploads/2024/05/MI-Calculator-Brief.pdf');
+				// 	$tradeprint_items_data['withoutArtwork'] = false;
+
+				if($order->get_billing_company() != ''){
+					$tradeprint_items_data['partnerContactDetails']['companyName'] = $order->get_billing_company();
+					$tradeprint_order['billingAddress']['companyName'] = $order->get_billing_company();
+				}
+				if($order->get_billing_phone() != ''){
+					$tradeprint_items_data['partnerContactDetails']['contactPhone'] = $order->get_billing_phone();
+
+					$tradeprint_order['billingAddress']['contactPhone'] = $order->get_billing_phone();
+					$tradeprint_order['billingAddress']['mobile'] = $order->get_billing_phone();
+				}
+				if($order->get_shipping_company() != ''){
+					$tradeprint_items_data['deliveryAddress']['companyName'] = $order->get_shipping_company();
+				}
+
+				$tradeprint_items[] = $tradeprint_items_data;
+			}
+		}
+
+
+		$tradeprint_order['orderItems'] = $tradeprint_items;
+
+		if( !empty( $tradeprint_items ) ){
+			$curl = curl_init();
+
+			curl_setopt_array($curl, array(
+			CURLOPT_URL => $this->api_base_url.'orders',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING => '',
+			CURLOPT_MAXREDIRS => 10,
+			CURLOPT_TIMEOUT => 0,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST => 'POST',
+			CURLOPT_POSTFIELDS => json_encode($tradeprint_order),
+			CURLOPT_HTTPHEADER => array(
+				'Authorization: Bearer '.$this->api_token,
+				'Content-Type: application/json'
+			),
+			));
+
+			$response = curl_exec($curl);
+
+			curl_close($curl);
+			update_post_meta($order->get_id(), 'cotp_tradeprint_order', $response);
+			
+			$response = json_decode($response, true);
+			//echo '<pre>'; print_r($response); die;
+			if(isset($response['success'])){
+				if($response['success']){
+					update_post_meta($order->get_id(), 'cotp_tradeprint_order_created', 'yes');
+					
+					return $response['result'];
+				}
+				else{
+					return false;
+				}
+				
+			}
+			else{
+				return false;
+			}
+		}
+		else{
+			return false;
+		}
+	}
 }

@@ -56,6 +56,10 @@ class Tradeprint_Public {
 		add_action('wp_ajax_tradeprint_product_prices_ajax', array($this, 'cotp_tradeprint_product_prices_ajax'));
 		add_action('wp_ajax_nopriv_tradeprint_product_prices_ajax', array($this, 'cotp_tradeprint_product_prices_ajax'));
 
+		add_action('wp_ajax_tradeprint_expected_delivery_ajax', array($this, 'cotp_tradeprint_expected_delivery_ajax'));
+		add_action('wp_ajax_nopriv_tradeprint_expected_delivery_ajax', array($this, 'cotp_tradeprint_expected_delivery_ajax'));
+
+		
 		add_filter( 'woocommerce_add_cart_item_data', array($this, 'cotp_tradeprint_cart_item_data'), 10, 3 );
 		add_filter( 'woocommerce_get_item_data', array($this, 'cotp_tradeprint_get_cart_item_data'), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order_line_item', array($this, 'cotp_tradeprint_order_item_data'), 10, 4 );
@@ -173,10 +177,16 @@ class Tradeprint_Public {
 							<div class="cotp-tradeprint cotp-tradeprint-prices">
 								
 							</div>
+
+							<div class="cotp-tradeprint cotp-tradeprint-expected-delivery">
+								
+							</div>
 						</div>
 
 						<script>
 							jQuery(document).ready(function($){
+								let postcode_box = '<div class="cotp-delivery-box"><div class="cotp-postcode-field"><input type="text" name="cotp_postcode_field" id="cotp_postcode_field"></div><div class="cotp-postcode-submit"><button class="cotp-check-deliveryajax button alt wp-element-button" type="button">Check</button></div></div>';
+
 								$('form.cart .single_add_to_cart_button').prop('disabled', true);
 
 								$('.tradeprint_attr_select').on('change', function(){
@@ -188,20 +198,83 @@ class Tradeprint_Public {
 									$('.cotp-tradeprint-prices .tradeprice_service_level').hide();
 									$('.cotp-tradeprint-prices .tradeprice_service_level_qty_'+selected_quantity).show();
 									$('form.cart .single_add_to_cart_button').prop('disabled', true);
+									$('.cotp-tradeprint-expected-delivery').html('');
 								});
 
 								$(document).on('change','input[name="tradeprint_service_level"]', function(){
+									$('.cotp-tradeprint-expected-delivery').html('');
+									
 									if($('input[name="tradeprint_service_level"]:checked').length > 0){
 										$('form.cart .single_add_to_cart_button').prop('disabled', false);
+
+										$('.cotp-tradeprint-expected-delivery').html(postcode_box);
+									
 									}
 									else{
 										$('form.cart .single_add_to_cart_button').prop('disabled', true);
 									}
 								});
 
+								$(document).on('click','.cotp-check-deliveryajax', function(){
+									cotp_get_expected_delivery_date();
+								});
+
+								function cotp_get_expected_delivery_date(){
+									//$('.cotp-tradeprint-expected-delivery').html('');
+
+									var all_attribute_selected = true;
+									var selected_attributes = {};
+									var product_id = $("#tradeprint_product_id").val();
+									var quantity_ = $("#tradeprint_quantity_options").val();
+									var service_level_ = $('input[name="tradeprint_service_level"]:checked').val();
+
+									var postcode = $('#cotp_postcode_field').val();
+
+									$('.tradeprint_attr_select').each(function(){
+										var attr_name = $(this).attr('data-cotpattribute');
+										var attr_value = $(this).val();
+										selected_attributes[attr_name] = attr_value;
+
+										if(attr_value == ''){
+											all_attribute_selected = false;
+										}
+									});
+
+									if(all_attribute_selected && postcode != ''){
+										$('.cotp-tradeprint-main').css('opacity', '.5');
+										$.ajax({
+											url: '<?php echo admin_url('admin-ajax.php'); ?>',
+											data: {
+												action:'tradeprint_expected_delivery_ajax',
+												wc_product_id:<?php echo $product->get_id(); ?>,
+												selected_attributes:selected_attributes,
+												product_id:product_id,
+												quantity:quantity_,
+												service_level:service_level_,
+												postcode:postcode
+											},
+											type: 'post',
+											success: function(response){
+												if(response.success && response.prices_options && response.prices_options.length > 0){
+													
+												}
+												else{
+													
+												}
+
+												$('.cotp-tradeprint-main').css('opacity', '1');
+											}
+										});
+									}
+									else{
+										$('.cotp-tradeprint-expected-delivery').html(postcode_box);
+									}
+								}
+
 								function cotp_get_product_prices_ajax(){
 									$('.cotp-quantity-options').html('');
 									$('.cotp-tradeprint-prices').html('');
+									$('.cotp-tradeprint-expected-delivery').html('');
 									$('form.cart .single_add_to_cart_button').prop('disabled', true);
 
 									var all_attribute_selected = true;
@@ -391,6 +464,15 @@ class Tradeprint_Public {
 			}
 			
 		}
+
+		if ( isset( $values['tradeprint_attrs'] ) && !empty($values['tradeprint_attrs'])) {
+			$item->add_meta_data(
+				'tradeprint_production_data',
+				$values['tradeprint_attrs']
+			);
+			
+		}
+		
 		
 		if ( isset( $values['tradeprint_quantity'] ) ) {
 			$item->add_meta_data(
@@ -456,6 +538,49 @@ class Tradeprint_Public {
 			}
 			
 		}
+	}
+
+
+	/**
+	 * tradeprint expected delivery ajax callback.
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_expected_delivery_ajax(){
+		$result = array();
+		$result['success'] = false;
+		$selected_attributes = $_POST['selected_attributes']??array();
+		$product_id = $_POST['product_id']??'';
+
+		$wc_product_id = $_POST['wc_product_id'];
+
+		$quantity = $_POST['quantity']??'';
+		$service_level = $_POST['service_level']??'';
+
+		$post_code = $_POST['postcode']??'';
+
+		$artwork_services = array(
+			'Just Print',
+			'File Check',
+			'File Assist or File Check with Proofing'
+		);
+
+		if( $post_code != '' && !empty($selected_attributes) && $product_id != '' && $quantity != '' && $service_level != ''){
+			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			
+			$tradeprint_product_prices = $tradeprint_api->get_expected_delivery_date( $product_id, $selected_attributes, $quantity, $service_level, '', $post_code );
+
+			
+
+			$result['success'] = true;
+			$result['msg'] = 'Expected Delivery Fatched';
+			$result['prices_options'] = $tradeprint_product_prices;
+		}
+		else{
+			$result['msg'] = 'Attributes or tradeprint product or postcode is missing';
+		}
+
+		wp_send_json($result); die;
 	}
 
 	/**

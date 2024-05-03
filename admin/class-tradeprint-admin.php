@@ -68,6 +68,11 @@ class Tradeprint_Admin {
 		add_action('wp_ajax_tradeprint_product_admin_ajax', array($this, 'cotp_tradeprint_product_admin_ajax'));
 		add_action('wp_ajax_nopriv_tradeprint_product_admin_ajax', array($this, 'cotp_tradeprint_product_admin_ajax'));
 
+
+		add_filter( 'manage_woocommerce_page_wc-orders_columns', array($this, 'cotp_tradeprint_add_new_order_admin_list_column'),20 );
+		add_action( 'manage_woocommerce_page_wc-orders_custom_column' , array($this, 'cotp_tradeprint_add_new_order_admin_list_column_value'), 20, 2 );
+
+		add_action( 'admin_init', array($this, 'cotp_tradeprint_create_order'));
 	}
 
 	/**
@@ -413,4 +418,42 @@ class Tradeprint_Admin {
 		}
 	}
 
+	/**
+	 * woocommerce order custom column
+	 *
+	 * @since    1.0.0
+	 */
+	public function cotp_tradeprint_add_new_order_admin_list_column( $columns ){
+		$columns['cotp_tradeprint_order'] = 'Tradeprint Order';
+    	return $columns;
+	}
+
+	public function cotp_tradeprint_add_new_order_admin_list_column_value( $column, $order ){
+		switch ( $column )
+    	{
+			case 'cotp_tradeprint_order' :
+				$cotp_tradeprint_order_created = get_post_meta($order->get_id(), 'cotp_tradeprint_order_created', true);
+				
+				if(isset($cotp_tradeprint_order_created) && $cotp_tradeprint_order_created == 'yes'){
+					echo 'Created';
+				
+				}
+				else{
+					echo '<a class="button button-primary" href="'.admin_url('/admin.php?page=wc-orders&process_tradeprint_order='.$order->get_id()).'">Create</a>';
+				
+				}
+				break;
+		}
+	}
+
+	public function cotp_tradeprint_create_order(){
+		if(isset($_GET['process_tradeprint_order']) && $_GET['process_tradeprint_order'] != ''){
+			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			$tradeprint_order = $tradeprint_api->create_order( $_GET['process_tradeprint_order'] );
+
+			if($tradeprint_order){
+				echo '<script>location.replace("'.admin_url('/admin.php?page=wc-orders').'")</script>';
+			}
+		}
+	}
 }

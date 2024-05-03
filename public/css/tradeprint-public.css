@@ -62,3 +62,32 @@
     display: flex;
     flex-wrap: wrap;
 }
+
+.cotp-delivery-box {
+    display: flex;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.cotp-postcode-field input {
+    font-size: 16px;
+    padding: 8px;
+    width: 100%;
+}
+
+.cotp-tradeprint-expected-delivery {
+    width: 50%;
+}
+
+.cotp-postcode-field {
+    width: 75%;
+}
+
+.cotp-postcode-submit {
+    width: 25%;
+}
+
+.cotp-postcode-submit button {
+    width: 100%;
+    padding: 8px;
+}
