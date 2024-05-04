@@ -35,3 +35,23 @@
 select.tradeprint_admin_options {
     width: 100%;
 }
+
+.cotr_admin_tradeprint {
+    display: inline-block;
+    width: 100%;
+    margin-top: 10px;
+}
+.cotr-admin-success {
+    background: #8cec8c;
+    color: green;
+    margin: 5px;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.cotr-admin-error {
+    background: #ffa8a8;
+    color: red;
+    margin: 5px;
+    padding: 5px 10px;
+    border-radius: 5px;
+}

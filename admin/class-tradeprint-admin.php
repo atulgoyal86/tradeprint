@@ -73,6 +73,8 @@ class Tradeprint_Admin {
 		add_action( 'manage_woocommerce_page_wc-orders_custom_column' , array($this, 'cotp_tradeprint_add_new_order_admin_list_column_value'), 20, 2 );
 
 		add_action( 'admin_init', array($this, 'cotp_tradeprint_create_order'));
+
+		add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'cotp_admin_tradeprint_order_details'));
 	}
 
 	/**
@@ -450,9 +452,45 @@ class Tradeprint_Admin {
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
 			$tradeprint_order = $tradeprint_api->create_order( $_GET['process_tradeprint_order'] );
 
+			echo '<script>location.replace("'.admin_url('/admin.php?page=wc-orders').'")</script>';
 			if($tradeprint_order){
-				echo '<script>location.replace("'.admin_url('/admin.php?page=wc-orders').'")</script>';
+				
 			}
 		}
+	}
+
+	public function cotp_admin_tradeprint_order_details( $order ){
+		$cotp_tradeprint_order_created = get_post_meta($order->get_id(), 'cotp_tradeprint_order_created', true);
+		$cotp_tradeprint_order_response = get_post_meta($order->get_id(), 'cotp_tradeprint_order', true);
+
+		if(isset($cotp_tradeprint_order_response) && $cotp_tradeprint_order_response != ''){
+			$cotp_tradeprint_order_response = json_decode($cotp_tradeprint_order_response, true);
+
+			echo '<div class="cotr_admin_tradeprint">';
+			echo '<h3>Tradeprint Order</h3>';
+
+			if($cotp_tradeprint_order_response['success'] && $cotp_tradeprint_order_created == 'yes'){
+				$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+				
+				echo '<div class="cotr-admin-success"><b>Order Date:</b> '.$cotp_tradeprint_order_response['result']['order']['dateCreated'].'</div>';
+				
+				$tradeprint_order_status = $tradeprint_api->get_order_status( 'cotp_wc_'.$order->get_id() );
+				if($tradeprint_order_status){
+					echo '<div class="cotr-admin-success"><b>Order Status:</b> '.$tradeprint_order_status['status'].'</div>';
+				
+				}
+				if(isset($cotp_tradeprint_order_response['result']['order']['tpOrderDetails']) && !empty($cotp_tradeprint_order_response['result']['order']['tpOrderDetails'])){
+
+					echo '<div class="cotr-admin-success"><b>Order Number:</b> '.($cotp_tradeprint_order_response['result']['order']['tpOrderDetails']['orderNumber']??'').'</div>';
+				}
+				
+			}
+			else{
+				echo '<div class="cotr-admin-error">'.$cotp_tradeprint_order_response['errorMessage'].'</div>';
+			}
+
+			echo '</div>';
+		}
+		
 	}
 }

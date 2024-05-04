@@ -76,7 +76,7 @@
 }
 
 .cotp-tradeprint-expected-delivery {
-    width: 50%;
+    width: auto;
 }
 
 .cotp-postcode-field {
@@ -93,7 +93,7 @@
 }
 
 .cotp-tradeprint.cotp-tradeprint-file-upload {
-    width: 50%;
+    width: auto;
 }
 
 .cotp-upload-main {

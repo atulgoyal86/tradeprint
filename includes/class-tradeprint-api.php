@@ -344,13 +344,49 @@ class Tradeprint_Api {
 
 	}
 
+	public function get_order_status( $order_refrence ){
+		$curl = curl_init();
+
+		curl_setopt_array($curl, array(
+		CURLOPT_URL => $this->api_base_url.'orders/'.$order_refrence,
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_ENCODING => '',
+		CURLOPT_MAXREDIRS => 10,
+		CURLOPT_TIMEOUT => 0,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST => 'GET',
+		CURLOPT_HTTPHEADER => array(
+			'Authorization: Bearer '.$this->api_token,
+			'Content-Type: application/json'
+		),
+		));
+
+		$response = curl_exec($curl);
+
+		curl_close($curl);
+		$response = json_decode($response, true);
+		//print_r($response); die;
+		if(isset($response['success'])){
+			if($response['success']){
+				return $response['result'];
+			}
+			else{
+				return false;
+			}
+			
+		}
+		else{
+			return false;
+		}
+	}
 
 	public function create_order( $wc_order_id ){
 		$order = wc_get_order( $wc_order_id );
 		
 		$tradeprint_order = array();
 		$tradeprint_order['currency'] = 'GBP'; //get_woocommerce_currency();
-		$tradeprint_order['orderReference'] = (string)$order->get_id();
+		$tradeprint_order['orderReference'] = (string) 'cotp_wc_'.$order->get_id();
 		$tradeprint_order['billingAddress'] = array(
 			"firstName"=> $order->get_billing_first_name(),
 			"lastName"=> $order->get_billing_last_name(),
