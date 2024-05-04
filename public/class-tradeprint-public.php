@@ -64,6 +64,13 @@ class Tradeprint_Public {
 		add_filter( 'woocommerce_get_item_data', array($this, 'cotp_tradeprint_get_cart_item_data'), 10, 2 );
 		add_action( 'woocommerce_checkout_create_order_line_item', array($this, 'cotp_tradeprint_order_item_data'), 10, 4 );
 		add_action( 'woocommerce_before_calculate_totals', array($this, 'cotp_tradeprint_calculate_item_price'), 99 );
+
+		add_filter( 'woocommerce_account_orders_columns', array($this, 'cotp_manage_account_orders_column'), 10, 1 );
+
+		add_action( 'woocommerce_my_account_my_orders_column_cotp-status', array($this, 'cotp_account_orders_column_rows') );
+
+		add_action('woocommerce_order_details_before_order_table', array( $this, 'cotp_show_myaccount_order_status'));
+
 	}
 
 	/**
@@ -630,6 +637,55 @@ class Tradeprint_Public {
 		}
 
 		wp_send_json($result); die;
+	}
+
+	public function cotp_manage_account_orders_column( $columns ){
+		$order_actions  = $columns['order-actions']; // Save Order actions
+		unset($columns['order-actions']); // Remove Order actions
+		unset($columns['order-status']);
+		// Add your custom column key / label
+		$columns['cotp-status'] = __( 'Status', 'woocommerce' );
+
+		// Add back previously saved "Order actions"
+		$columns['order-actions'] = $order_actions;
+
+		return $columns;
+	}
+
+	public function cotp_account_orders_column_rows( $order ){
+		$cotp_tradeprint_order_created = get_post_meta($order->get_id(), 'cotp_tradeprint_order_created', true);
+		if(isset($cotp_tradeprint_order_created) && $cotp_tradeprint_order_created == 'yes'){
+			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			$tradeprint_order_status = $tradeprint_api->get_order_status( 'cotp_wc_'.$order->get_id() );
+			if($tradeprint_order_status){
+				echo esc_html($tradeprint_order_status['status']);
+			}
+			else{
+				echo esc_html( wc_get_order_status_name( $order->get_status() ) );
+			}
+		}
+		else{
+			echo esc_html( wc_get_order_status_name( $order->get_status() ) );
+		}
+	}
+
+	public function cotp_show_myaccount_order_status( $order ){
+		
+		$cotp_tradeprint_order_created = get_post_meta($order->get_id(), 'cotp_tradeprint_order_created', true);
+		if(isset($cotp_tradeprint_order_created) && $cotp_tradeprint_order_created == 'yes'){
+			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
+			$tradeprint_order_status = $tradeprint_api->get_order_status( 'cotp_wc_'.$order->get_id() );
+			if($tradeprint_order_status){
+				echo '<mark class="cotr-status">'.$tradeprint_order_status['status'].'</mark>';
+				echo '<style>.order-status{display:none !important;}</style>';
+			}
+			else{
+				echo '<mark class="order-status">' . wc_get_order_status_name( $order->get_status() ) . '</mark>';
+			}
+		}
+		else{
+			echo '<mark class="order-status">' . wc_get_order_status_name( $order->get_status() ) . '</mark>';
+		}
 	}
 
 	/**
