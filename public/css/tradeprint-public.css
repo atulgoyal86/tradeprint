@@ -91,3 +91,26 @@
     width: 100%;
     padding: 8px;
 }
+
+.cotp-tradeprint.cotp-tradeprint-file-upload {
+    width: 50%;
+}
+
+.cotp-upload-main {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+
+button#cotp_upload_now_btn {
+    width: 100%;
+}
+
+a#cotp_upload_later {
+    width: 100%;
+}
+
+input#tradeprint_upload {
+    display: none;
+    width: 100%;
+}

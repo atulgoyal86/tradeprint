@@ -372,7 +372,8 @@ class Tradeprint_Api {
 			if(is_tradeprint_product($item->get_product_id())){
 				$production_data = $item->get_meta('tradeprint_production_data', true);
 
-				$file_url = $item->get_meta('tradeprint_upload_url', true)??'';
+				$file_url = $item->get_meta('tradeprint_uploaded_url', true);
+
 				$tradeprint_items_data = array(
 					"productId" => $item->get_meta('Tradeprint Product Id', true),
 					"fileUrls" => array(),
@@ -407,8 +408,8 @@ class Tradeprint_Api {
 					)
 				);
 
-				if( isset($file_url) && $file_url != ''){
-					$tradeprint_items_data['fileUrls'] = array($file_url);
+				if( isset($file_url) && !empty($file_url) && isset($file_url['url']) && $file_url['url'] != ''){
+					$tradeprint_items_data['fileUrls'] = array($file_url['url']);
 					$tradeprint_items_data['withoutArtwork'] = false;
 				}
 
@@ -458,13 +459,13 @@ class Tradeprint_Api {
 			$response = curl_exec($curl);
 
 			curl_close($curl);
-			update_post_meta($order->get_id(), 'cotp_tradeprint_order', $response);
+			update_post_meta($wc_order_id, 'cotp_tradeprint_order', $response);
 			
 			$response = json_decode($response, true);
 			//echo '<pre>'; print_r($response); die;
 			if(isset($response['success'])){
 				if($response['success']){
-					update_post_meta($order->get_id(), 'cotp_tradeprint_order_created', 'yes');
+					update_post_meta($wc_order_id, 'cotp_tradeprint_order_created', 'yes');
 					
 					return $response['result'];
 				}

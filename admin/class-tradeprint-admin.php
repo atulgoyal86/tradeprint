@@ -433,10 +433,9 @@ class Tradeprint_Admin {
     	{
 			case 'cotp_tradeprint_order' :
 				$cotp_tradeprint_order_created = get_post_meta($order->get_id(), 'cotp_tradeprint_order_created', true);
-				
+				//echo get_post_meta($order->get_id(), 'cotp_tradeprint_order', true);
 				if(isset($cotp_tradeprint_order_created) && $cotp_tradeprint_order_created == 'yes'){
 					echo 'Created';
-				
 				}
 				else{
 					echo '<a class="button button-primary" href="'.admin_url('/admin.php?page=wc-orders&process_tradeprint_order='.$order->get_id()).'">Create</a>';

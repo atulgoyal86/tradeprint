@@ -181,11 +181,17 @@ class Tradeprint_Public {
 							<div class="cotp-tradeprint cotp-tradeprint-expected-delivery">
 								
 							</div>
+
+							<div class="cotp-tradeprint cotp-tradeprint-file-upload">
+								
+							</div>
 						</div>
 
 						<script>
 							jQuery(document).ready(function($){
 								let postcode_box = '<div class="cotp-delivery-box"><div class="cotp-postcode-field"><input type="text" name="cotp_postcode_field" id="cotp_postcode_field"></div><div class="cotp-postcode-submit"><button class="cotp-check-deliveryajax button alt wp-element-button" type="button">Check</button></div></div>';
+
+								let file_upload_field = '<div class="cotp-upload-main"><button id="cotp_upload_now_btn" type="button" class="button alt wp-element-button">Upload Now</button><a id="cotp_upload_later" href="#">Upload Later</a><input class="button alt wp-element-button cotp-uploadNow_select" type="file" accept=".pdf" id="tradeprint_upload" name="tradeprint_upload"></div>';
 
 								$('form.cart .single_add_to_cart_button').prop('disabled', true);
 
@@ -203,12 +209,13 @@ class Tradeprint_Public {
 
 								$(document).on('change','input[name="tradeprint_service_level"]', function(){
 									$('.cotp-tradeprint-expected-delivery').html('');
+									$('.cotp-tradeprint-file-upload').html('');
 									
 									if($('input[name="tradeprint_service_level"]:checked').length > 0){
 										$('form.cart .single_add_to_cart_button').prop('disabled', false);
 
 										$('.cotp-tradeprint-expected-delivery').html(postcode_box);
-									
+										$('.cotp-tradeprint-file-upload').html(file_upload_field);
 									}
 									else{
 										$('form.cart .single_add_to_cart_button').prop('disabled', true);
@@ -217,6 +224,18 @@ class Tradeprint_Public {
 
 								$(document).on('click','.cotp-check-deliveryajax', function(){
 									cotp_get_expected_delivery_date();
+								});
+
+								$(document).on('click', '#cotp_upload_now_btn', function(){
+									$(this).hide();
+									$('#tradeprint_upload').show();
+								});
+
+								$(document).on('click', '#cotp_upload_later', function(event){
+									event.preventDefault();
+									$('#cotp_upload_now_btn').show();
+									$('#tradeprint_upload').hide();
+									$('#tradeprint_upload').val('');
 								});
 
 								function cotp_get_expected_delivery_date(){
@@ -408,6 +427,11 @@ class Tradeprint_Public {
 			if ( isset( $_POST['tradeprint_product_id'] ) ) {
 				$cart_item_data['tradeprint_product_id'] = sanitize_text_field( $_POST['tradeprint_product_id'] );
 			}
+
+			if ( isset( $_FILES["tradeprint_upload"] ) && 0 == $_FILES['tradeprint_upload']['error'] ) {
+				$tradeprint_upload = create_attachment($_FILES['tradeprint_upload']);
+				$cart_item_data['tradeprint_attachment_id'] = $tradeprint_upload;
+			}
 		}
 		return $cart_item_data;
 	}
@@ -442,6 +466,13 @@ class Tradeprint_Public {
 				'value' => wc_clean( $cart_item_data['tradeprint_service_level'] ),
 			);
 		}
+
+		// if ( isset( $cart_item_data['tradeprint_attachment_id'] ) ) {
+		// 	$item_data[] = array(
+		// 		'key'   => __( 'File' ),
+		// 		'value' => '<a href="'.wp_get_attachment_url($cart_item_data['tradeprint_attachment_id']).'">Download Uploaded File</a>'
+		// 	);
+		// }
 
 		return $item_data;
 	}
@@ -492,6 +523,24 @@ class Tradeprint_Public {
 			$item->add_meta_data(
 				__( 'Tradeprint Product Id' ),
 				$values['tradeprint_product_id'],
+				true
+			);
+		}
+
+		if ( isset( $values['tradeprint_attachment_id'] ) ) {
+			$item->add_meta_data(
+				__( 'File' ),
+				'<a target="_blank" href="'.wp_get_attachment_url($values['tradeprint_attachment_id']).'">Download Uploaded File</a>',
+				true
+			);
+		}
+
+		if ( isset( $values['tradeprint_attachment_id'] ) ) {
+			$item->add_meta_data(
+				'tradeprint_uploaded_url',
+				array(
+					'url' => wp_get_attachment_url($values['tradeprint_attachment_id'])
+				),
 				true
 			);
 		}
