@@ -251,7 +251,7 @@ class Tradeprint_Public {
 									var all_attribute_selected = true;
 									var selected_attributes = {};
 									var product_id = $("#tradeprint_product_id").val();
-									var quantity_ = $("#tradeprint_quantity_options").val();
+									var quantity_ = $(".tradeprint_quantity_options").val();
 									var service_level_ = $('input[name="tradeprint_service_level"]:checked').val();
 
 									var postcode = $('#cotp_postcode_field').val();
@@ -281,6 +281,8 @@ class Tradeprint_Public {
 											},
 											type: 'post',
 											success: function(response){
+												$('.temp-res').remove();
+												$('#cotp_postcode_field').after('<span class="temp-res">'+response.prices_options+'</span>');
 												if(response.success && response.prices_options && response.prices_options.length > 0){
 													
 												}
@@ -624,7 +626,7 @@ class Tradeprint_Public {
 		if( $post_code != '' && !empty($selected_attributes) && $product_id != '' && $quantity != '' && $service_level != ''){
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
 			
-			$tradeprint_product_prices = $tradeprint_api->get_expected_delivery_date( $product_id, $selected_attributes, $quantity, $service_level, '', $post_code );
+			$tradeprint_product_prices = $tradeprint_api->get_expected_delivery_date( $product_id, $selected_attributes, $quantity, $service_level, $artwork_services[0], $post_code );
 
 			
 

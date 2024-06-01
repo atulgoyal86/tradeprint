@@ -293,7 +293,7 @@ class Tradeprint_Api {
 		);
 
 		if($quantity != ''){
-			$api_body['quantity'] = array((int)$quantity);
+			$api_body['quantity'] = (int)$quantity;
 		}
 
 		if($service_level != ''){
@@ -310,7 +310,7 @@ class Tradeprint_Api {
 		
 
 		curl_setopt_array($curl, array(
-		CURLOPT_URL => $this->api_base_url.'products-v2/prices-v2',
+		CURLOPT_URL => $this->api_base_url.'products/expectedDeliveryDate',
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_ENCODING => '',
 		CURLOPT_MAXREDIRS => 10,
@@ -328,7 +328,8 @@ class Tradeprint_Api {
 		$response = curl_exec($curl);
 
 		curl_close($curl);
-		$response = json_decode($response, true);
+		//$response = json_decode($response, true);
+		return $response; //-------
 		if(isset($response['success'])){
 			if($response['success']){
 				return $response['result'];
