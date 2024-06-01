@@ -142,6 +142,12 @@ class Tradeprint_Public {
 
 					$admin_cotp_attr = get_post_meta( $product->get_id(), 'admin_cotp_attr', true );
 					$admin_cotp_attr = $admin_cotp_attr??array();
+					
+					$admin_cotp_attr_default = get_post_meta( $product->get_id(), 'admin_cotp_attr_default', true );
+					$admin_cotp_attr_default = $admin_cotp_attr_default??array();
+					
+					$admin_cotp_attr_hide = get_post_meta( $product->get_id(), 'admin_cotp_attr_hide', true );
+					$admin_cotp_attr_hide = $admin_cotp_attr_hide??array();
 					?>
 						<style>
 							.single-product span.woocommerce-Price-amount.amount {
@@ -157,15 +163,20 @@ class Tradeprint_Public {
 								<?php if( !empty($tradeprint_product_attributes['attributes'])){ ?>
 									<?php foreach($tradeprint_product_attributes['attributes'] as $attribute_name => $attributes){ ?>
 									
-										<div class="cotp-product-attribute-single">
+										<div class="cotp-product-attribute-single" <?php echo (!empty($admin_cotp_attr_hide) && in_array($attribute_name, $admin_cotp_attr_hide))?'style="display:none";':''; ?>>
 											<label><?php echo $attribute_name; ?></label>
 											<select data-cotpattribute="<?php echo $attribute_name; ?>" class="tradeprint_attr_select" name="tradeprint_attrs[<?php echo $attribute_name; ?>]">
 												<option value="">Select</option>
 
 												<?php if( !empty($attributes)){ ?>
-													<?php foreach($attributes as $attribute){ ?>
+													<?php foreach($attributes as $attribute){ 
+														$is_this_default = false;
+														if(isset($admin_cotp_attr_default[$attribute_name]) && $admin_cotp_attr_default[$attribute_name] == $attribute){
+															$is_this_default = true;
+														}
+													?>
 														<?php if(!isset($admin_cotp_attr[$attribute_name]) || !in_array($attribute, $admin_cotp_attr[$attribute_name])){ ?>
-														<option value="<?php echo $attribute; ?>"><?php echo $attribute; ?></option>
+														<option <?php echo ($is_this_default)?'selected':''; ?> value="<?php echo $attribute; ?>"><?php echo $attribute; ?></option>
 														<?php } ?>
 													<?php } ?>
 												<?php } ?>
@@ -340,7 +351,7 @@ class Tradeprint_Public {
 														$('.cotp-tradeprint-prices').append('<div class="tradeprice_service_level tradeprice_service_level_qty_'+value.quantity+'" style="display:none"></div>');
 
 														$.each(value.prices, function( price_index, price_value ) {
-															$('.cotp-tradeprint-prices .tradeprice_service_level_qty_'+value.quantity).append('<label><input type="radio" name="tradeprint_service_level" value="'+price_value.serviceLevel+'"><?php echo get_woocommerce_currency_symbol(); ?> '+price_value.price+' ('+price_value.serviceLevel+')</label>');
+															$('.cotp-tradeprint-prices .tradeprice_service_level_qty_'+value.quantity).append('<label class="service_level_opt_'+convertToSlug(price_value.serviceLevel)+'"><input type="radio" name="tradeprint_service_level" value="'+price_value.serviceLevel+'"><?php echo get_woocommerce_currency_symbol(); ?> '+price_value.price+' ('+price_value.serviceLevel+')</label>');
 														});
 													});
 												}
@@ -365,6 +376,12 @@ class Tradeprint_Public {
 									
 								}
 							});
+							
+							function convertToSlug(Text) {
+							  return Text.toLowerCase()
+								.replace(/ /g, "-")
+								.replace(/[^\w-]+/g, "");
+							}
 						</script>
 					<?php
 				}

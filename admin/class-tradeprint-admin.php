@@ -304,7 +304,13 @@ class Tradeprint_Admin {
 		$admin_cotp_attr = get_post_meta( $post->ID, 'admin_cotp_attr', true );
 		$admin_cotp_attr = $admin_cotp_attr??array();
 		$cotp_product_name = get_post_meta( $post->ID, 'cotp_product_name', true );
-
+		
+		$admin_cotp_attr_default = get_post_meta( $post->ID, 'admin_cotp_attr_default', true );
+		$admin_cotp_attr_default = $admin_cotp_attr_default??array();
+		
+		$admin_cotp_attr_hide = get_post_meta( $post->ID, 'admin_cotp_attr_hide', true );
+		$admin_cotp_attr_hide = $admin_cotp_attr_hide??array();
+		
 		$admin_cotp_attr_html = '';
 		if($cotp_product_name != ''){
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
@@ -318,6 +324,7 @@ class Tradeprint_Admin {
 					foreach($available_attributes as $attribute_name => $attributes){
 
 						$op = '';
+						$default_op = '';
 						if( !empty($attributes)){
 							foreach($attributes as $attribute){
 								if(isset($admin_cotp_attr[$attribute_name]) && in_array($attribute, $admin_cotp_attr[$attribute_name])){
@@ -326,13 +333,26 @@ class Tradeprint_Admin {
 								else{
 									$op .= '<option value="'.$attribute.'">'.$attribute.'</option>';
 								}
+								
+								if(isset($admin_cotp_attr_default[$attribute_name]) &&  $admin_cotp_attr_default[$attribute_name] == $attribute){
+									$default_op .= '<option selected value="'.$attribute.'">'.$attribute.'</option>';
+								}
+								else{
+									$default_op .= '<option value="'.$attribute.'">'.$attribute.'</option>';
+								}
 							}
 						}
 
 						$admin_cotp_attr_html .= '<div class="cotp_admin_field">
 						<label>'.$attribute_name.'</label>
 						<select multiple class="tradeprint_admin_options" name="admin_cotp_attr['.$attribute_name.'][]">
-						<option value="">Select</option>'.$op.'</select></div>';
+						<option value="">Select</option>'.$op.'</select>
+						<label><input type="checkbox" name="admin_cotp_attr_hide[]" '.(!empty($admin_cotp_attr_hide) && in_array($attribute_name, $admin_cotp_attr_hide)?'checked':'').' value="'.$attribute_name.'"> Hide</label>
+						
+						<label>Default Value ('.$attribute_name.')</label>
+						<select class="tradeprint_admin_options" name="admin_cotp_attr_default['.$attribute_name.']">
+						<option value="">Select</option>'.$default_op.'</select>
+						</div>';
 					}
 				}
 					
@@ -417,6 +437,20 @@ class Tradeprint_Admin {
 		}
 		else{
 			update_post_meta( $product_id, 'admin_cotp_attr', array() );
+		}
+		
+		if(isset($_POST['admin_cotp_attr_default']) && !empty($_POST['admin_cotp_attr_default'])){
+			update_post_meta( $product_id, 'admin_cotp_attr_default', $_POST['admin_cotp_attr_default'] );
+		}
+		else{
+			update_post_meta( $product_id, 'admin_cotp_attr_default', array() );
+		}
+		
+		if(isset($_POST['admin_cotp_attr_hide']) && !empty($_POST['admin_cotp_attr_hide'])){
+			update_post_meta( $product_id, 'admin_cotp_attr_hide', $_POST['admin_cotp_attr_hide'] );
+		}
+		else{
+			update_post_meta( $product_id, 'admin_cotp_attr_hide', array() );
 		}
 	}
 
