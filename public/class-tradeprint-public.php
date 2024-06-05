@@ -293,13 +293,13 @@ class Tradeprint_Public {
 											type: 'post',
 											success: function(response){
 												$('.temp-res').remove();
-												$('#cotp_postcode_field').after('<span class="temp-res">'+response.prices_options+'</span>');
-												if(response.success && response.prices_options && response.prices_options.length > 0){
+												$('#cotp_postcode_field').after('<span class="temp-res">'+response.delivery_data+'</span>');
+// 												if(response.success && response.prices_options && response.prices_options.length > 0){
 													
-												}
-												else{
+// 												}
+// 												else{
 													
-												}
+// 												}
 
 												$('.cotp-tradeprint-main').css('opacity', '1');
 											}
@@ -643,13 +643,13 @@ class Tradeprint_Public {
 		if( $post_code != '' && !empty($selected_attributes) && $product_id != '' && $quantity != '' && $service_level != ''){
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
 			
-			$tradeprint_product_prices = $tradeprint_api->get_expected_delivery_date( $product_id, $selected_attributes, $quantity, $service_level, $artwork_services[0], $post_code );
+			$tradeprint_delivery_data = $tradeprint_api->get_expected_delivery_date( $product_id, $selected_attributes, $quantity, $service_level, $artwork_services[0], $post_code );
 
 			
 
 			$result['success'] = true;
 			$result['msg'] = 'Expected Delivery Fatched';
-			$result['prices_options'] = $tradeprint_product_prices;
+			$result['delivery_data'] = $tradeprint_delivery_data;
 		}
 		else{
 			$result['msg'] = 'Attributes or tradeprint product or postcode is missing';

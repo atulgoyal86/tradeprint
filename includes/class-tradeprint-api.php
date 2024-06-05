@@ -328,14 +328,14 @@ class Tradeprint_Api {
 		$response = curl_exec($curl);
 
 		curl_close($curl);
-		//$response = json_decode($response, true);
-		return $response; //-------
+		$response = json_decode($response, true);
+		
 		if(isset($response['success'])){
 			if($response['success']){
-				return $response['result'];
+				return $response['result']['formattedDate']??'';
 			}
 			else{
-				return false;
+				return $response['errorMessage']??'';
 			}
 			
 		}
