@@ -328,11 +328,14 @@ class Tradeprint_Api {
 		$response = curl_exec($curl);
 
 		curl_close($curl);
+		//return 'Request: '.json_encode($api_body).'<br>Response: '.$response; // temp
 		$response = json_decode($response, true);
+		
+		
 		
 		if(isset($response['success'])){
 			if($response['success']){
-				return $response['result']['formattedDate']??'';
+				return "Expected Delivery Date: ".$response['result']['formattedDate']??'';
 			}
 			else{
 				return $response['errorMessage']??'';
