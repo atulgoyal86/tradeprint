@@ -55,3 +55,31 @@ select.tradeprint_admin_options {
     padding: 5px 10px;
     border-radius: 5px;
 }
+
+.cotp_ship_to_store_popup {
+    position: fixed;
+    top: 0;
+    z-index: 9999;
+    width: 100%;
+    height: 100%;
+    background: #ffffff78;
+}
+
+.cotp_ship_to_store_inner {
+    transform: translate(-50%, -50%);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: #fff;
+    width: 30%;
+    border: 1px solid #000;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+.cotp_ship_to_store_inner label {
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
+span.cotp_ship_to_store_close {float: right;cursor: pointer;}

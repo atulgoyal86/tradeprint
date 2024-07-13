@@ -75,6 +75,53 @@ class Tradeprint_Admin {
 		add_action( 'admin_init', array($this, 'cotp_tradeprint_create_order'));
 
 		add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'cotp_admin_tradeprint_order_details'));
+		
+		
+		// order item file upload option for every item in order in admin order edit screen
+		add_action( 'woocommerce_admin_order_item_headers', array( $this, 'cotp_admin_order_item_headers') );
+		add_action( 'woocommerce_admin_order_item_values', array( $this, 'cotp_admin_order_item_values'), 9999, 3 );
+		
+		add_action( 'woocommerce_before_save_order_item', array( $this, 'cotp_update_order_item_files'), 9999 );
+	}
+	
+	public function cotp_update_order_item_files( $item ){
+		if ( $item->get_type() !== 'line_item' ) return;
+		if ( ! $_POST ) return;
+		if ( isset( $_POST['items'] ) ) {
+		  // ITS AJAX SAVE
+		  parse_str( rawurldecode( $_POST['items'] ), $output );
+		} else {
+		  $output = $_POST;
+		}
+	   
+	   $item->update_meta_data( 'tradeprint_attachment_id', array( 'tradeprint_attachment_id'=> $output['tradeprint_attachment_id'][$item->get_id()]) );
+	   $item->update_meta_data( 'tradeprint_uploaded_url', array( 'url'=> wp_get_attachment_url($output['tradeprint_attachment_id'][$item->get_id()])) );
+	}
+	
+	public function cotp_admin_order_item_headers( $order ){
+		echo '<th class="cotp_item_file">File</th>';
+	}
+	
+	public function cotp_admin_order_item_values( $product, $item, $item_id ){
+		$cotp_item_file_id = $item->get_meta( 'tradeprint_attachment_id', true ) ? $item->get_meta( 'tradeprint_attachment_id', true ) : '';
+        
+		$cotp_item_file_url = wp_get_attachment_url( $cotp_item_file_id['tradeprint_attachment_id'] );
+		echo '<td class="cotp_item_file" width="10%">';
+		
+		
+		if( $cotp_item_file_url ){ ?>
+			<a href="<?php echo esc_url( $cotp_item_file_url ) ?>" class="button" target="_blank">
+				View File
+			</a>
+			<a href="#" class="cotp-remove">Remove File</a>
+			<input type="hidden" name="tradeprint_attachment_id[<?php echo $item_id; ?>]" value="<?php echo absint( $cotp_item_file_id['tradeprint_attachment_id'] ) ?>">
+		<?php }else{ ?>
+			<button type="button" class="button cotp-upload">Upload File</button>
+			<a href="#" class="cotp-remove" style="display:none">Remove File</a>
+			<input type="hidden" name="tradeprint_attachment_id[<?php echo $item_id; ?>]" value="">
+		<?php }
+		echo '</td>';
+		//echo '<td class="cotp_item_file" width="10%"><div class="view"></div><input type="text" name="cotp_item_file[' . $item_id . ']" value="' . $cotp_item_file['url'] . '" class=""></div></td>';
 	}
 
 	/**
@@ -96,7 +143,7 @@ class Tradeprint_Admin {
 		 * class.
 		 */
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/tradeprint-admin.css', array(), $this->version, 'all' );
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/tradeprint-admin.css', array(), $this->version.'.2', 'all' );
 
 	}
 
@@ -118,8 +165,13 @@ class Tradeprint_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/tradeprint-admin.js', array( 'jquery' ), $this->version, false );
+		
+		if ( ! did_action( 'wp_enqueue_media' ) ) {
+			wp_enqueue_media();
+		}
+		
+		
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/tradeprint-admin.js', array( 'jquery' ), $this->version.'.4', false );
 
 	}
 
@@ -383,6 +435,11 @@ class Tradeprint_Admin {
 				) 
 			)
 		);
+		
+		woocommerce_wp_checkbox( array(
+			'id'            => 'cotp_product_hide_file_upload',
+			'label'         => __( 'Hide File Upload Field' )
+		) );
 
 		echo '<div class="cotp-attribute-settings">';
 		echo '<button id="cotp-get-available-attr-btn" type="button" class="button primary">Get Available Attributes</button>';
@@ -431,6 +488,13 @@ class Tradeprint_Admin {
 		if( isset($_POST['cotp_product_commission']) ) {
 	        update_post_meta( $product_id, 'cotp_product_commission', esc_attr( $_POST['cotp_product_commission'] ) );
 	    }
+		
+		if( isset($_POST['cotp_product_hide_file_upload']) ) {
+	        update_post_meta( $product_id, 'cotp_product_hide_file_upload', esc_attr( $_POST['cotp_product_hide_file_upload'] ) );
+	    }
+		else{
+			update_post_meta( $product_id, 'cotp_product_hide_file_upload', 'no' );
+		}
 
 		if(isset($_POST['admin_cotp_attr']) && !empty($_POST['admin_cotp_attr'])){
 			update_post_meta( $product_id, 'admin_cotp_attr', $_POST['admin_cotp_attr'] );
@@ -472,10 +536,14 @@ class Tradeprint_Admin {
 				//echo get_post_meta($order->get_id(), 'cotp_tradeprint_order', true);
 				if(isset($cotp_tradeprint_order_created) && $cotp_tradeprint_order_created == 'yes'){
 					echo 'Created';
+					
 				}
 				else{
-					echo '<a class="button button-primary" href="'.admin_url('/admin.php?page=wc-orders&process_tradeprint_order='.$order->get_id()).'">Create</a>';
-				
+					
+					/*echo '<label><input type="checkbox" data-orderid="'.$order->get_id().'" class="cotp_shipto_shop_address_check cotp_shipto_shop_address_check_'.$order->get_id().'" value="1"> Ship to store</label><br>
+					<a data-orderid="'.$order->get_id().'" class="button button-primary cotp_create_order_btn cotp_create_order_'.$order->get_id().'" data-mainhref="'.admin_url('/admin.php?page=wc-orders&process_tradeprint_order='.$order->get_id()).'" href="'.admin_url('/admin.php?page=wc-orders&process_tradeprint_order='.$order->get_id()).'">Create</a>'; */
+					
+					echo '<button type="button" data-orderid="'.$order->get_id().'" class="button button-primary cotp_create_order_button cotp_create_order_button_'.$order->get_id().'" data-mainhref="'.admin_url('/admin.php?page=wc-orders&process_tradeprint_order='.$order->get_id()).'">Create</button>';
 				}
 				break;
 		}
@@ -483,8 +551,11 @@ class Tradeprint_Admin {
 
 	public function cotp_tradeprint_create_order(){
 		if(isset($_GET['process_tradeprint_order']) && $_GET['process_tradeprint_order'] != ''){
+			
+			$cotp_ship_to_store = (isset($_GET['cotp_ship_to_store']))??'false';
+			
 			$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
-			$tradeprint_order = $tradeprint_api->create_order( $_GET['process_tradeprint_order'] );
+			$tradeprint_order = $tradeprint_api->create_order( $_GET['process_tradeprint_order'], $cotp_ship_to_store );
 
 			echo '<script>location.replace("'.admin_url('/admin.php?page=wc-orders').'")</script>';
 			if($tradeprint_order){

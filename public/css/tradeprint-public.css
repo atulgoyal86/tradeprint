@@ -67,6 +67,7 @@
     display: flex;
     margin-bottom: 10px;
     width: 100%;
+	flex-wrap: wrap;
 }
 
 .cotp-postcode-field input {
@@ -80,16 +81,15 @@
 }
 
 .cotp-postcode-field {
-    width: 75%;
+    width: 70%;
 }
 
 .cotp-postcode-submit {
-    width: 25%;
+    width: 30%;
 }
 
 .cotp-postcode-submit button {
     width: 100%;
-    padding: 8px;
 }
 
 .cotp-tradeprint.cotp-tradeprint-file-upload {
@@ -112,5 +112,17 @@ a#cotp_upload_later {
 
 input#tradeprint_upload {
     display: none;
+    width: 100%;
+}
+
+input#cotp_postcode_field {
+    margin: 0 !important;
+}
+
+button.cotp-check-deliveryajax {
+    margin: 0;
+}
+
+.cotp-delivery-box label {
     width: 100%;
 }

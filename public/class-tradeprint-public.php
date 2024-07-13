@@ -132,6 +132,8 @@ class Tradeprint_Public {
 
 			$cotp_product_commission = get_post_meta($product->get_id(), 'cotp_product_commission', true);
 			$cotp_product_commission = $cotp_product_commission??0;
+			
+			$cotp_product_hide_file_upload = get_post_meta( $product->get_id(), 'cotp_product_hide_file_upload', true );
 
 			if(isset($tradeprint_product_name) && $tradeprint_product_name != ''){
 				$tradeprint_api = new Tradeprint_Api($this->plugin_name, $this->version);
@@ -200,14 +202,14 @@ class Tradeprint_Public {
 								
 							</div>
 
-							<div class="cotp-tradeprint cotp-tradeprint-file-upload">
+							<div class="cotp-tradeprint cotp-tradeprint-file-upload" style="<?php echo ($cotp_product_hide_file_upload == 'yes')?'display:none':''; ?>">
 								
 							</div>
 						</div>
 
 						<script>
 							jQuery(document).ready(function($){
-								let postcode_box = '<div class="cotp-delivery-box"><div class="cotp-postcode-field"><input type="text" name="cotp_postcode_field" id="cotp_postcode_field"></div><div class="cotp-postcode-submit"><button class="cotp-check-deliveryajax button alt wp-element-button" type="button">Check</button></div></div>';
+								let postcode_box = '<div class="cotp-delivery-box"><label>Estimated Delivery Date (Enter Postcode)</label><div class="cotp-postcode-field"><input type="text" name="cotp_postcode_field" id="cotp_postcode_field"></div><div class="cotp-postcode-submit"><button class="cotp-check-deliveryajax button alt wp-element-button" type="button">Check</button></div></div>';
 
 								let file_upload_field = '<div class="cotp-upload-main"><button id="cotp_upload_now_btn" type="button" class="button alt wp-element-button">Upload Now</button><a id="cotp_upload_later" href="#">Upload Later</a><input class="button alt wp-element-button cotp-uploadNow_select" type="file" accept=".pdf" id="tradeprint_upload" name="tradeprint_upload"></div>';
 
@@ -554,11 +556,11 @@ class Tradeprint_Public {
 		}
 
 		if ( isset( $values['tradeprint_attachment_id'] ) ) {
-			$item->add_meta_data(
+			/*$item->add_meta_data(
 				__( 'File' ),
 				'<a target="_blank" href="'.wp_get_attachment_url($values['tradeprint_attachment_id']).'">Download Uploaded File</a>',
 				true
-			);
+			);*/
 		}
 
 		if ( isset( $values['tradeprint_attachment_id'] ) ) {
@@ -566,6 +568,14 @@ class Tradeprint_Public {
 				'tradeprint_uploaded_url',
 				array(
 					'url' => wp_get_attachment_url($values['tradeprint_attachment_id'])
+				),
+				true
+			);
+			
+			$item->add_meta_data(
+				'tradeprint_attachment_id',
+				array(
+					'tradeprint_attachment_id' => $values['tradeprint_attachment_id']
 				),
 				true
 			);

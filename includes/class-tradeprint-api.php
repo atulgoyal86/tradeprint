@@ -99,18 +99,22 @@ class Tradeprint_Api {
 		$this->api_token = get_option('cotp_api_token')??'';
 		$this->api_token_at = get_option('cotp_api_token_at')??'';
 
-        if($this->sandbox){
+        if($this->sandbox == 'yes'){
             $this->api_base_url = 'https://sandbox.orders.tradeprint.io/v2/';
         }
         else{
             $this->api_base_url = 'https://orders.tradeprint.io/v2/';
         }
+		
         //$this->api_token = '';
 
 		if($this->api_username == '' || $this->api_password == ''){
 			$this->is_auth = false;
 		}
 		else if($this->api_token == ''){
+			$this->authenticate();
+		}
+		else if( !$this->get_product_attributes_check_authrized() ){
 			$this->authenticate();
 		}
 		else{
@@ -169,6 +173,55 @@ class Tradeprint_Api {
 			$this->is_auth = false;
 		}
     }
+	
+	/**
+	 * tradeprint api get product attribute to check authorized
+	 *
+	 * @since    1.0.0
+	 */
+	public function get_product_attributes_check_authrized( ){
+		if(!$this->is_auth){
+			return false;
+		}
+
+		$curl = curl_init();
+
+		curl_setopt_array($curl, array(
+		CURLOPT_URL => $this->api_base_url.'products-v2/attributes-v2',
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_ENCODING => '',
+		CURLOPT_MAXREDIRS => 10,
+		CURLOPT_TIMEOUT => 0,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST => 'GET',
+		CURLOPT_HTTPHEADER => array(
+			'Content-Type: application/json',
+			'Authorization: Bearer '.$this->api_token
+		),
+		));
+
+		$response = curl_exec($curl);
+
+		curl_close($curl);
+		$response = json_decode($response, true);
+		if(isset($response['success'])){
+			if($response['success']){
+				return $response['result'];
+			}
+			else{
+				return false;
+			}
+			
+		}
+		else{
+			if(isset($response['message']) && $response['message'] == 'Unauthorized'){
+				return false;
+			}
+			return false;
+		}
+
+	}
 
 	/**
 	 * tradeprint api get product attribute.
@@ -203,7 +256,6 @@ class Tradeprint_Api {
 
 		curl_close($curl);
 		$response = json_decode($response, true);
-
 		if(isset($response['success'])){
 			if($response['success']){
 				return $response['result']['values'];
@@ -335,7 +387,30 @@ class Tradeprint_Api {
 		
 		if(isset($response['success'])){
 			if($response['success']){
-				return "Expected Delivery Date: ".$response['result']['formattedDate']??'';
+				if($response['result']['formattedDate'] != ''){
+					$cotp_extend_delivery_days = get_option('cotp_extend_delivery_days');
+					//$updated_date = date('d/m/Y', strtotime("+".$cotp_extend_delivery_days." days", $response['result']['formattedDate']));
+					
+					// Your date in d/m/Y format
+					$dateString = $response['result']['formattedDate'];
+
+					// Create a DateTime object from the date string
+					$date = DateTime::createFromFormat('d/m/Y', $dateString);
+					
+					if(isset($cotp_extend_delivery_days) && $cotp_extend_delivery_days > 0){
+						$date->add(new DateInterval('P'.$cotp_extend_delivery_days.'D'));
+					}
+
+					// Get the resulting date in d/m/Y format
+					$updated_date = $date->format('D. jS F Y');
+
+					//$updated_date = date('Y-m-d', strtotime($response['result']['formattedDate']));
+					return "Expected Delivery Date: <br>".$updated_date;
+				}
+				else{
+					return "";
+				}
+				
 			}
 			else{
 				return $response['errorMessage']??'';
@@ -385,13 +460,45 @@ class Tradeprint_Api {
 		}
 	}
 
-	public function create_order( $wc_order_id ){
+	public function create_order( $wc_order_id, $cotp_ship_to_store ){
 		$order = wc_get_order( $wc_order_id );
+		
+		$store_address     = get_option( 'woocommerce_store_address' );
+		$store_address_2   = get_option( 'woocommerce_store_address_2' );
+		$store_city        = get_option( 'woocommerce_store_city' );
+		$store_postcode    = get_option( 'woocommerce_store_postcode' );
+		$store_country     = get_option('woocommerce_default_country');
+		
+		if($cotp_ship_to_store == 'true'){
+			$shipping_address__ = array(
+						//"companyName"=> $order->get_shipping_company(),
+						"firstName"=> $order->get_shipping_first_name(),
+						"lastName"=> $order->get_shipping_last_name(),
+						"add1"=> $store_address,
+						"add2"=> $store_address_2,
+						"town"=> $store_city,
+						"postcode"=> $store_postcode,
+						"country"=> $store_country //"GB"
+					);
+		}
+		else{
+			$shipping_address__ = array(
+						//"companyName"=> $order->get_shipping_company(),
+						"firstName"=> $order->get_shipping_first_name(),
+						"lastName"=> $order->get_shipping_last_name(),
+						"add1"=> $order->get_shipping_address_1(),
+						"add2"=> $order->get_shipping_address_2(),
+						"town"=> $order->get_shipping_city(),
+						"postcode"=> $order->get_shipping_postcode(),
+						"country"=> $order->get_shipping_country() //"GB"
+					);
+		}
+
 		
 		$tradeprint_order = array();
 		$tradeprint_order['currency'] = 'GBP'; //get_woocommerce_currency();
 		$tradeprint_order['orderReference'] = (string) 'cotp_wc_'.$order->get_id();
-		$tradeprint_order['billingAddress'] = array(
+		/*$tradeprint_order['billingAddress'] = array(
 			"firstName"=> $order->get_billing_first_name(),
 			"lastName"=> $order->get_billing_last_name(),
 			"add1"=> $order->get_billing_address_1(),
@@ -401,6 +508,20 @@ class Tradeprint_Api {
 			"country"=> $order->get_billing_country(),
 			//"companyName"=> $order->get_billing_company(),
 			"email"=> $order->get_billing_email(),
+			//"contactPhone"=> $order->get_billing_phone(),
+			//"mobile"=> $order->get_billing_phone()
+		);*/
+		
+		$tradeprint_order['billingAddress'] = array(
+			"firstName"=> $order->get_billing_first_name(),
+			"lastName"=> $order->get_billing_last_name(),
+			"add1"=> $store_address,
+			"add2"=> $store_address_2,
+			"postcode"=> $store_postcode,
+			"town"=> $store_city,
+			"country"=> $store_country,
+			//"companyName"=> $order->get_billing_company(),
+			"email"=> get_option( 'admin_email' ),
 			//"contactPhone"=> $order->get_billing_phone(),
 			//"mobile"=> $order->get_billing_phone()
 		);
@@ -428,16 +549,7 @@ class Tradeprint_Api {
 						//"contactPhone"=> $order->get_billing_phone(),
 						//"companyName"=> $order->get_billing_company()
 					),
-					"deliveryAddress" => array(
-						//"companyName"=> $order->get_shipping_company(),
-						"firstName"=> $order->get_shipping_first_name(),
-						"lastName"=> $order->get_shipping_last_name(),
-						"add1"=> $order->get_shipping_address_1(),
-						"add2"=> $order->get_shipping_address_2(),
-						"town"=> $order->get_shipping_city(),
-						"postcode"=> $order->get_shipping_postcode(),
-						"country"=> $order->get_shipping_country() //"GB"
-					),
+					"deliveryAddress" => $shipping_address__,
 					"extraData" => array(
 						// "description"=> "Order description",
 						"comments"=> $order->get_customer_note()
